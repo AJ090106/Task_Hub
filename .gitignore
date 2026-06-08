@@ -7,3 +7,5 @@ node_modules/
 .next/
 
 venv/ or .venv/
+.env
+.env.local
