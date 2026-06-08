@@ -1,9 +1,0 @@
-.env
-
-__pycache__/
-
-node_modules/
-
-.next/
-
-venv/ or .venv/
