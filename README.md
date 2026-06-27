@@ -5,25 +5,39 @@ Lumora Ai Studio is a full-stack task management and automated asynchronous proc
 
 ## 🔄 System Architecture & Workflow
 
-The platform separates the user-facing dashboard from heavy data computations using an asynchronous message-passing pipeline. Below is the workflow layout of how data moves through the system:
+The platform completely decouples the user-facing dashboard from heavy operations using an asynchronous message-passing pipeline. 
 
-[ User Interface (Next.js) ] 
-             │
-      1. Submits Heavy Task
-             ▼
-  [ Flask Backend API ] ─── 2. Instantly saves 'PENDING' state ───► [ Supabase DB ]
-             │
-     3. Offloads Task Immediately
-             ▼
-  [ Message Queue (Redis) ]
-             │
-     4. Picks up job from queue & sets state to 'PROCESSING'
-             ▼
-  [ Celery Background Worker ] ───► Executes [ Image Processor Engine ]
-             │
-     5. Completes calculation and saves final output
-             ▼
-      [ Supabase DB ] ◄─── 6. Reflects state change ('COMPLETED') ───► [ User Dashboard View ]
+### 📊 Application Data Flow
+
+```text
+  ┌────────────────────────────┐
+  │  User Interface (Next.js)  │
+  └──────────────┬─────────────┘
+                 │
+        (1) Submits Heavy Task
+                 ▼
+  ┌────────────────────────────┐       (2) Saves 'PENDING' State
+  │     Flask Backend API      ├────────────────────────────────────────┐
+  └──────────────┬─────────────┘                                        │
+                 │                                                      ▼
+        (3) Offloads Task Immediately                         ┌──────────────────┐
+                 ▼                                            │   Supabase DB    │
+  ┌────────────────────────────┐                              └────────▲─────────┘
+  │   Message Queue (Redis)    │                                       │
+  └──────────────┬─────────────┘                                       │
+                 │                                                     │ (6) State Syncs
+        (4) Worker Ingests Job & Sets 'PROCESSING'                     │     to UI
+                 ▼                                                     │
+  ┌────────────────────────────┐                                       │
+  │  Celery Background Worker  │                                       │
+  └──────────────┬─────────────┘                                       │
+                 │                                                     │
+           Spins up module                                             │
+                 ▼                                                     │
+  ┌────────────────────────────┐                                       │
+  │   Image Processor Engine   ├───────────────────────────────────────┘
+  └────────────────────────────┘       (5) Saves Output & Flips Status
+                                            ('COMPLETED' / 'FAILED')
 Operational Breakdown:
 Authentication Gate: A custom React state context verifies user identity and determines whether they are assigned standard User permissions or Administrator privileges.
 
